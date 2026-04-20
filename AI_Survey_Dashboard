@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard: ผลสำรวจความต้องการใช้งาน AI ในองค์กร</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --secondary: #2e86c1;
+    --accent: #f39c12;
+    --accent2: #27ae60;
+    --accent3: #e74c3c;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --text: #2c3e50;
+    --subtext: #7f8c8d;
+    --border: #dce3eb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', 'Noto Sans Thai', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2e86c1 100%);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  }
+  header .logo { font-size: 22px; font-weight: 700; letter-spacing: 0.3px; }
+  header .subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+  header .meta { text-align: right; font-size: 12px; opacity: 0.8; }
+  header .meta strong { font-size: 20px; display: block; color: #f1c40f; }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    background: var(--primary);
+    padding: 0 32px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.65);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: white; background: rgba(255,255,255,0.08); }
+  .tab-btn.active {
+    color: #f1c40f;
+    border-bottom-color: #f1c40f;
+    font-weight: 600;
+  }
+
+  /* PAGES */
+  .page { display: none; padding: 24px 32px; }
+  .page.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .icon { font-size: 20px; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border-left: 4px solid var(--secondary);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+  .kpi-card.accent { border-left-color: var(--accent); }
+  .kpi-card.success { border-left-color: var(--accent2); }
+  .kpi-card.danger { border-left-color: var(--accent3); }
+  .kpi-value { font-size: 30px; font-weight: 800; color: var(--primary); line-height: 1.1; }
+  .kpi-label { font-size: 12px; color: var(--subtext); margin-top: 4px; }
+  .kpi-sub { font-size: 11px; color: var(--accent2); margin-top: 4px; font-weight: 600; }
+
+  /* CHART CARDS */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .chart-grid.cols-1 { grid-template-columns: 1fr; }
+  .chart-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chart-container { position: relative; }
+  .chart-container canvas { max-height: 300px; }
+  .chart-container.tall canvas { max-height: 420px; }
+
+  /* INSIGHT BOX */
+  .insight-box {
+    background: linear-gradient(135deg, #eaf4ff, #f5f9ff);
+    border: 1px solid #b8d9f5;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--primary);
+  }
+  .insight-box strong { color: var(--secondary); }
+  .insight-box ul { margin-top: 6px; padding-left: 16px; }
+  .insight-box li { margin-bottom: 4px; }
+
+  /* RECOMMENDATION BOX */
+  .rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .rec-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border-top: 4px solid var(--secondary);
+  }
+  .rec-card.priority-high { border-top-color: var(--accent3); }
+  .rec-card.priority-med { border-top-color: var(--accent); }
+  .rec-card.priority-low { border-top-color: var(--accent2); }
+  .rec-card h4 { font-size: 14px; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+  .rec-card p { font-size: 13px; color: var(--subtext); line-height: 1.6; }
+  .rec-card .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: white;
+  }
+  .tag-high { background: var(--accent3); }
+  .tag-med { background: var(--accent); }
+  .tag-low { background: var(--accent2); }
+
+  /* PROGRESS BAR */
+  .bar-list { display: flex; flex-direction: column; gap: 10px; }
+  .bar-item {}
+  .bar-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+  .bar-label span:first-child { color: var(--text); font-weight: 500; }
+  .bar-label span:last-child { color: var(--secondary); font-weight: 700; }
+  .bar-track { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--secondary), #5dade2); transition: width 1s ease; }
+  .bar-fill.danger { background: linear-gradient(90deg, #e74c3c, #f1948a); }
+  .bar-fill.success { background: linear-gradient(90deg, #27ae60, #82e0aa); }
+  .bar-fill.warning { background: linear-gradient(90deg, #f39c12, #f8c471); }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--primary); color: white; padding: 10px 12px; text-align: left; font-weight: 600; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); }
+  tr:nth-child(even) td { background: #f8fafc; }
+  tr:hover td { background: #eaf4ff; }
+
+  /* FILTER ROW */
+  .filter-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-row label { font-size: 13px; font-weight: 600; color: var(--primary); }
+  .filter-row select {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: white;
+    cursor: pointer;
+  }
+  .filter-row select:focus { outline: none; border-color: var(--secondary); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+  }
+  .badge-blue { background: var(--secondary); }
+  .badge-green { background: var(--accent2); }
+  .badge-orange { background: var(--accent); }
+  .badge-red { background: var(--accent3); }
+
+  /* STACKED SCORE */
+  .stack-bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .stack-seg { display: flex; align-items: center; justify-content: center; font-size: 10px; color: white; font-weight: 600; transition: all 0.5s; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--subtext);
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    margin-top: 32px;
+  }
+
+  @media (max-width: 768px) {
+    header { padding: 16px 16px; }
+    .page { padding: 16px; }
+    .nav-tabs { padding: 0 8px; }
+    .chart-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="logo">📊 AI Survey Dashboard</div>
+    <div class="subtitle">ผลสำรวจความต้องการใช้งานเทคโนโลยี AI ในการทำงาน</div>
+  </div>
+  <div class="meta">
+    <strong>837</strong>
+    ผู้ตอบแบบสำรวจ | ข้อมูล ณ เมษายน 2568
+  </div>
+</header>
+
+<!-- NAV TABS -->
+<nav class="nav-tabs">
+  <button class="tab-btn active" data-page="overview">🏠 ภาพรวม</button>
+  <button class="tab-btn" data-page="demographics">👥 ข้อมูลผู้ตอบ</button>
+  <button class="tab-btn" data-page="painpoints">⚡ Pain Points</button>
+  <button class="tab-btn" data-page="aiusage">🤖 การใช้งาน AI ปัจจุบัน</button>
+  <button class="tab-btn" data-page="needs">🎯 ความต้องการ AI</button>
+  <button class="tab-btn" data-page="skills">📚 ทักษะ & ความพร้อม</button>
+  <button class="tab-btn" data-page="recommendation">💡 ข้อเสนอแนะ</button>
+</nav>
+
+<!-- ==================== PAGE: OVERVIEW ==================== -->
+<div class="page active" id="page-overview">
+  <div class="section-title"><span class="icon">🏠</span> ภาพรวมผลการสำรวจ</div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-value">837</div>
+      <div class="kpi-label">ผู้ตอบแบบสำรวจทั้งหมด</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-value">91.8%</div>
+      <div class="kpi-label">เคยหรือใช้ AI เป็นประจำ</div>
+      <div class="kpi-sub">768 จาก 837 คน</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-value">29.9%</div>
+      <div class="kpi-label">ใช้ AI เป็นประจำ</div>
+      <div class="kpi-sub">250 คน</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value">51.4%</div>
+      <div class="kpi-label">ได้รับ License AI จากบริษัท</div>
+      <div class="kpi-sub">430 คน</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-value">75.9%</div>
+      <div class="kpi-label">กังวลด้านความถูกต้องของ AI</div>
+      <div class="kpi-sub">635 คน</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-value">88.4%</div>
+      <div class="kpi-label">ต้องการให้ AI ลดเวลาทำงาน</div>
+      <div class="kpi-sub">740 คน</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <!-- AI Usage Overall -->
+    <div class="chart-card">
+      <h3>🤖 สถานะการใช้งาน AI ในปัจจุบัน</h3>
+      <div class="chart-container">
+        <canvas id="chartUsageOverall"></canvas>
+      </div>
+      <div class="insight-box">
+        ผู้ตอบแบบสำรวจ <strong>91.8%</strong> เคยหรือใช้ AI เป็นประจำ มีเพียง <strong>8.2%</strong> ที่ยังไม่เคยใช้งาน AI เลย แสดงถึงความตื่นตัวสูงขององค์กร
+      </div>
+    </div>
+
+    <!-- Top Expectations -->
+    <div class="chart-card">
+      <h3>🎯 ความคาดหวังจาก AI (เลือกได้หลายข้อ)</h3>
+      <div class="chart-container">
+        <canvas id="chartExpectations"></canvas>
+      </div>
+      <div class="insight-box">
+        พนักงานส่วนใหญ่ต้องการ <strong>ลดเวลาทำงาน (88.4%)</strong> และ <strong>เพิ่มคุณภาพงาน (77.5%)</strong> เป็นอันดับต้น
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <!-- Top Pain Points Summary -->
+    <div class="chart-card">
+      <h3>⚡ Top 5 Pain Points ที่รุนแรงที่สุด (% ระดับ "มาก")</h3>
+      <div class="bar-list">
+        <div class="bar-item">
+          <div class="bar-label"><span>งานซ้ำๆ / Manual Process</span><span>54.0%</span></div>
+          <div class="bar-track"><div class="bar-fill danger" style="width:54%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>การประชุมมากเกินไป</span><span>42.9%</span></div>
+          <div class="bar-track"><div class="bar-fill danger" style="width:43%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>ความยากในการวิเคราะห์ข้อมูล</span><span>41.7%</span></div>
+          <div class="bar-track"><div class="bar-fill warning" style="width:42%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>การร่างเอกสาร/อีเมล ใช้เวลามาก</span><span>41.6%</span></div>
+          <div class="bar-track"><div class="bar-fill warning" style="width:42%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>การตอบคำถามซ้ำๆ / Support</span><span>41.7%</span></div>
+          <div class="bar-track"><div class="bar-fill warning" style="width:42%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top AI Use Cases Needed -->
+    <div class="chart-card">
+      <h3>🎯 Top Use Cases ที่ต้องการให้ AI ช่วย (% "จำเป็นมาก")</h3>
+      <div class="bar-list">
+        <div class="bar-item">
+          <div class="bar-label"><span>วิเคราะห์ข้อมูล/สรุปรายงาน/Insight</span><span>71.0%</span></div>
+          <div class="bar-track"><div class="bar-fill success" style="width:71%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>สืบค้นข้อมูลจากระเบียบ/คู่มือ</span><span>62.2%</span></div>
+          <div class="bar-track"><div class="bar-fill success" style="width:62%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>สรุปการประชุมและบันทึกมติ</span><span>62.0%</span></div>
+          <div class="bar-track"><div class="bar-fill success" style="width:62%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>งานอัตโนมัติ/Code/สูตร Excel</span><span>56.6%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:57%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>สร้างสรรค์/กราฟิก/สไลด์</span><span>56.4%</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:56%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- License Satisfaction Summary -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>📋 สถานะ License AI จากบริษัท & ความพึงพอใจ</h3>
+      <div class="chart-container">
+        <canvas id="chartLicenseSummary"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>🔑 AI ที่ใช้งานสูงสุด 5 อันดับแรก</h3>
+      <div class="bar-list" style="margin-top:8px">
+        <div class="bar-item">
+          <div class="bar-label"><span>ChatGPT (OpenAI)</span><span>640 คน</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:76.5%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>Google Gemini</span><span>562 คน</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:67.1%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>Microsoft Copilot</span><span>324 คน</span></div>
+          <div class="bar-track"><div class="bar-fill warning" style="width:38.7%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>NotebookLM (Google)</span><span>233 คน</span></div>
+          <div class="bar-track"><div class="bar-fill success" style="width:27.8%"></div></div>
+        </div>
+        <div class="bar-item">
+          <div class="bar-label"><span>Canva AI</span><span>208 คน</span></div>
+          <div class="bar-track"><div class="bar-fill success" style="width:24.9%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: DEMOGRAPHICS ==================== -->
+<div class="page" id="page-demographics">
+  <div class="section-title"><span class="icon">👥</span> ข้อมูลผู้ตอบแบบสำรวจ</div>
+
+  <div class="chart-grid cols-3">
+    <div class="chart-card">
+      <h3>👔 ประเภทพนักงาน</h3>
+      <div class="chart-container">
+        <canvas id="chartEmployeeType"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>🎂 ช่วงอายุ (Generation)</h3>
+      <div class="chart-container">
+        <canvas id="chartGeneration"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>💼 ลักษณะงานหลัก (Primary Function)</h3>
+      <div class="chart-container">
+        <canvas id="chartFunction"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>🏢 Top 10 หน่วยงาน / ส่วนงาน</h3>
+      <div class="chart-container tall">
+        <canvas id="chartDepartments"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📈 การใช้ AI แยกตามช่วงอายุ</h3>
+      <div class="chart-container tall">
+        <canvas id="chartUsageByAge"></canvas>
+      </div>
+      <div class="insight-box">
+        <strong>Insight:</strong> กลุ่มอายุ 25–34 ปี มีสัดส่วน "ใช้ประจำ" สูงที่สุด สะท้อนถึงความคุ้นเคยกับเทคโนโลยี ขณะที่กลุ่ม 55+ มีจำนวนผู้ตอบมากที่สุดและยังมีโอกาสพัฒนาการใช้งานได้อีกมาก
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: PAIN POINTS ==================== -->
+<div class="page" id="page-painpoints">
+  <div class="section-title"><span class="icon">⚡</span> Pain Points — ปัญหาในการทำงานปัจจุบัน</div>
+
+  <div class="chart-grid cols-1">
+    <div class="chart-card">
+      <h3>📊 ระดับความรุนแรงของปัญหา (น้อย / ปานกลาง / มาก) — เรียงตาม % ระดับ "มาก"</h3>
+      <div class="chart-container" style="position:relative;height:360px">
+        <canvas id="chartPainStackedBar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>🔴 Pain Points ระดับ "มาก" (จำนวนคน)</h3>
+      <div class="chart-container">
+        <canvas id="chartPainHigh"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📋 สรุปรายละเอียด Pain Points ทั้งหมด</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ปัญหา</th>
+            <th>น้อย</th>
+            <th>ปานกลาง</th>
+            <th>มาก</th>
+            <th>% มาก</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>งานซ้ำๆ / Manual Process</td><td>107</td><td>278</td><td>452</td><td><span class="badge badge-red">54.0%</span></td></tr>
+          <tr><td>การประชุมมากเกินไป</td><td>111</td><td>367</td><td>359</td><td><span class="badge badge-red">42.9%</span></td></tr>
+          <tr><td>ความยากวิเคราะห์ข้อมูล</td><td>80</td><td>408</td><td>349</td><td><span class="badge badge-red">41.7%</span></td></tr>
+          <tr><td>การตอบคำถามซ้ำๆ</td><td>145</td><td>343</td><td>349</td><td><span class="badge badge-red">41.7%</span></td></tr>
+          <tr><td>การร่างหนังสือ/อีเมล</td><td>102</td><td>387</td><td>348</td><td><span class="badge badge-orange">41.6%</span></td></tr>
+          <tr><td>Information Overload</td><td>108</td><td>456</td><td>273</td><td><span class="badge badge-orange">32.6%</span></td></tr>
+          <tr><td>ขาดข้อมูลตัดสินใจ</td><td>157</td><td>426</td><td>254</td><td><span class="badge badge-orange">30.3%</span></td></tr>
+          <tr><td>การพยากรณ์ไม่แม่นยำ</td><td>140</td><td>458</td><td>239</td><td><span class="badge badge-orange">28.6%</span></td></tr>
+          <tr><td>ขาดทักษะ Presentation</td><td>190</td><td>405</td><td>242</td><td><span class="badge badge-orange">28.9%</span></td></tr>
+          <tr><td>ภาษาเป็นอุปสรรค</td><td>193</td><td>410</td><td>234</td><td><span class="badge badge-orange">28.0%</span></td></tr>
+          <tr><td>ความผิดพลาดในงานละเอียด</td><td>185</td><td>447</td><td>205</td><td><span class="badge badge-blue">24.5%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="insight-box">
+    <strong>💡 Key Insight:</strong> ปัญหาที่รุนแรงที่สุด 3 อันดับแรก คือ
+    <ul>
+      <li><strong>งานซ้ำๆ / Manual Process</strong> — 54% ของผู้ตอบระบุว่า "มาก" → AI Automation ตอบโจทย์โดยตรง</li>
+      <li><strong>การประชุมมากเกินไป</strong> — 42.9% → ต้องการ AI สรุปประชุม / Meeting Assistant</li>
+      <li><strong>ความยากในการวิเคราะห์ข้อมูล</strong> — 41.7% → ต้องการ AI Analytics / Data Insight</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== PAGE: AI USAGE ==================== -->
+<div class="page" id="page-aiusage">
+  <div class="section-title"><span class="icon">🤖</span> พฤติกรรมการใช้งาน AI ในปัจจุบัน</div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>📊 ระดับการใช้งาน AI ปัจจุบัน</h3>
+      <div class="chart-container">
+        <canvas id="chartCurrentUsage"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📋 License AI จากบริษัท & ความพึงพอใจ</h3>
+      <div class="chart-container">
+        <canvas id="chartLicenseDetail"></canvas>
+      </div>
+      <div class="insight-box">
+        จากผู้ที่ได้รับ License (430 คน) พบว่า <strong>83%</strong> ยังใช้งานไม่เต็มศักยภาพหรือไม่แน่ใจ — มีโอกาสพัฒนาการใช้งานได้มากหากมีการ Training ที่เพียงพอ
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols-1">
+    <div class="chart-card">
+      <h3>🔑 เครื่องมือ AI ที่ใช้งานปัจจุบัน (ผู้ตอบเลือกได้หลายข้อ — รวม 768 คนที่เคยใช้)</h3>
+      <div class="chart-container" style="position:relative;height:340px">
+        <canvas id="chartAITools"></canvas>
+      </div>
+      <div class="insight-box">
+        <strong>ChatGPT</strong> และ <strong>Google Gemini</strong> ครองอันดับ 1-2 ด้วยสัดส่วนสูงมาก แสดงถึงความนิยมใช้ AI แบบ Text Generation ขณะที่ <strong>Microsoft Copilot</strong> อันดับ 3 สะท้อนการใช้งานร่วมกับ MS Office ที่แพร่หลาย
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>⭐ ประเภท AI ที่เห็นว่าจำเป็น (% "จำเป็นมาก")</h3>
+      <div class="chart-container">
+        <canvas id="chartAITypes"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📊 ระดับความสำคัญ AI แต่ละประเภท (แยก 3 ระดับ)</h3>
+      <div style="margin-top:8px">
+        <p style="font-size:12px;color:var(--subtext);margin-bottom:10px">น้อย / ปานกลาง / มาก</p>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>Text Generation (ChatGPT, Claude, Gemini)</span><span style="color:#27ae60">66.4%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:3.8%;background:#e74c3c">3.8%</div>
+              <div class="stack-seg" style="width:29.7%;background:#f39c12">29.7%</div>
+              <div class="stack-seg" style="width:66.4%;background:#27ae60">66.4%</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>Workflow Automation (n8n, Power Automate)</span><span style="color:#27ae60">54.1%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:8.7%;background:#e74c3c">8.7%</div>
+              <div class="stack-seg" style="width:37.2%;background:#f39c12">37.2%</div>
+              <div class="stack-seg" style="width:54.1%;background:#27ae60">54.1%</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>Image Generation (Midjourney, DALL-E)</span><span style="color:#f39c12">34.6%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:21.5%;background:#e74c3c">21.5%</div>
+              <div class="stack-seg" style="width:43.8%;background:#f39c12">43.8%</div>
+              <div class="stack-seg" style="width:34.6%;background:#27ae60">34.6%</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>Audio & Voice (TTS, Voice Cloning)</span><span style="color:#f39c12">31.4%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:21.5%;background:#e74c3c">22%</div>
+              <div class="stack-seg" style="width:46.4%;background:#f39c12">46.4%</div>
+              <div class="stack-seg" style="width:31.4%;background:#27ae60">31.4%</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>Video Generation (Sora, Runway)</span><span style="color:#f39c12">29.5%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:22.3%;background:#e74c3c">22.3%</div>
+              <div class="stack-seg" style="width:48.1%;background:#f39c12">48.1%</div>
+              <div class="stack-seg" style="width:29.5%;background:#27ae60">29.5%</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between"><span>3D & Design (Spline AI, Luma AI)</span><span style="color:#e74c3c">27.1%</span></div>
+            <div class="stack-bar">
+              <div class="stack-seg" style="width:24.1%;background:#e74c3c">24.1%</div>
+              <div class="stack-seg" style="width:48.7%;background:#f39c12">48.7%</div>
+              <div class="stack-seg" style="width:27.1%;background:#27ae60">27.1%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: NEEDS ==================== -->
+<div class="page" id="page-needs">
+  <div class="section-title"><span class="icon">🎯</span> ความต้องการ AI — Use Cases & ประเภท AI</div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>🎯 Use Cases ที่ต้องการให้ AI ช่วย (% จำเป็นมาก)</h3>
+      <div class="chart-container">
+        <canvas id="chartUseCases"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>📋 รายละเอียด Use Cases (จำแนก 3 ระดับ)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Use Case</th>
+            <th>น้อย</th>
+            <th>ปานกลาง</th>
+            <th>มาก</th>
+            <th>% มาก</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>วิเคราะห์ข้อมูล/Insight</td><td>19</td><td>224</td><td>594</td><td><span class="badge badge-green">71.0%</span></td></tr>
+          <tr><td>สืบค้นระเบียบ/คู่มือ</td><td>58</td><td>258</td><td>521</td><td><span class="badge badge-green">62.2%</span></td></tr>
+          <tr><td>สรุปการประชุม</td><td>61</td><td>257</td><td>519</td><td><span class="badge badge-green">62.0%</span></td></tr>
+          <tr><td>งานอัตโนมัติ/Code</td><td>92</td><td>271</td><td>474</td><td><span class="badge badge-green">56.6%</span></td></tr>
+          <tr><td>สร้างสรรค์/สไลด์</td><td>55</td><td>310</td><td>472</td><td><span class="badge badge-green">56.4%</span></td></tr>
+          <tr><td>แปลภาษา/ตรวจไวยากรณ์</td><td>65</td><td>309</td><td>463</td><td><span class="badge badge-blue">55.3%</span></td></tr>
+          <tr><td>ช่วยคิดโครงการ/ยุทธศาสตร์</td><td>83</td><td>353</td><td>401</td><td><span class="badge badge-blue">47.9%</span></td></tr>
+          <tr><td>เขียน/ร่างเอกสาร/อีเมล</td><td>101</td><td>344</td><td>392</td><td><span class="badge badge-blue">46.8%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>💬 ความคาดหวังสูงสุดจาก AI</h3>
+      <div class="chart-container">
+        <canvas id="chartExpectation2"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>🛡️ ความกังวลเกี่ยวกับ AI (เลือกได้หลายข้อ)</h3>
+      <div class="chart-container">
+        <canvas id="chartConcerns"></canvas>
+      </div>
+      <div class="insight-box">
+        <strong>ความกังวลหลัก:</strong> พนักงาน <strong>75.9%</strong> กังวลด้านความถูกต้อง และ <strong>71.1%</strong> กังวลด้านความปลอดภัยของข้อมูล — ต้องมีนโยบายและการอบรมที่ชัดเจน
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols-1">
+    <div class="chart-card">
+      <h3>🆘 รูปแบบการสนับสนุนที่ต้องการ (เลือกได้หลายข้อ)</h3>
+      <div class="chart-container" style="position:relative;height:200px">
+        <canvas id="chartSupport"></canvas>
+      </div>
+      <div class="insight-box">
+        พนักงานต้องการ <strong>Workshop เชิงปฏิบัติการ (72.6%)</strong>, <strong>Prompt Library (66.5%)</strong>, <strong>Guidelines & Policy (62.5%)</strong> และ <strong>Tech Support (62.1%)</strong> — ต้องลงทุนทั้ง 4 ด้านพร้อมกัน
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: SKILLS ==================== -->
+<div class="page" id="page-skills">
+  <div class="section-title"><span class="icon">📚</span> ทักษะและความพร้อมในการใช้ AI</div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card success">
+      <div class="kpi-value">20.7%</div>
+      <div class="kpi-label">เข้าใจพื้นฐาน AI อย่างคล่องแคล่ว</div>
+      <div class="kpi-sub">173 คน</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-value">64.4%</div>
+      <div class="kpi-label">เข้าใจพื้นฐาน AI พอใช้ได้</div>
+      <div class="kpi-sub">539 คน</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-value">26.0%</div>
+      <div class="kpi-label">Prompt Engineering ต้องการอบรม</div>
+      <div class="kpi-sub">218 คน</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-value">27.7%</div>
+      <div class="kpi-label">Fact-checking ต้องการอบรม</div>
+      <div class="kpi-sub">232 คน</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <h3>📊 ระดับทักษะ AI ทั้ง 3 ด้าน</h3>
+      <div class="chart-container">
+        <canvas id="chartSkills"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>🧩 การวิเคราะห์ช่องว่างทักษะ (Skill Gap Analysis)</h3>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px">1. ความเข้าใจพื้นฐาน AI</div>
+          <div class="stack-bar" style="height:28px">
+            <div class="stack-seg" style="width:14.9%;background:#e74c3c;font-size:11px">ต้องอบรม 14.9%</div>
+            <div class="stack-seg" style="width:64.4%;background:#f39c12;font-size:11px">พอใช้ได้ 64.4%</div>
+            <div class="stack-seg" style="width:20.7%;background:#27ae60;font-size:11px">คล่องแคล่ว 20.7%</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px">2. Prompt Engineering</div>
+          <div class="stack-bar" style="height:28px">
+            <div class="stack-seg" style="width:26.0%;background:#e74c3c;font-size:11px">ต้องอบรม 26%</div>
+            <div class="stack-seg" style="width:57.0%;background:#f39c12;font-size:11px">พอใช้ได้ 57%</div>
+            <div class="stack-seg" style="width:17.0%;background:#27ae60;font-size:11px">คล่อง 17%</div>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary);margin-bottom:6px">3. Fact-checking ผลลัพธ์จาก AI</div>
+          <div class="stack-bar" style="height:28px">
+            <div class="stack-seg" style="width:27.7%;background:#e74c3c;font-size:11px">ต้องอบรม 27.7%</div>
+            <div class="stack-seg" style="width:56.4%;background:#f39c12;font-size:11px">พอใช้ได้ 56.4%</div>
+            <div class="stack-seg" style="width:15.9%;background:#27ae60;font-size:11px">คล่อง 15.9%</div>
+          </div>
+        </div>
+        <div class="insight-box" style="margin-top:4px">
+          <strong>Skill Gap สูงสุด:</strong> Fact-checking และ Prompt Engineering — ทั้ง 2 ทักษะมีผู้ต้องการอบรมมากกว่า 26% และมีผู้ "คล่องแคล่ว" น้อยกว่า 20% สะท้อนโอกาสพัฒนาที่ชัดเจน
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-grid cols-1">
+    <div class="chart-card">
+      <h3>🎓 แผนการพัฒนาทักษะที่แนะนำ</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ทักษะ</th>
+            <th>ต้องอบรม (เริ่มต้น)</th>
+            <th>พอใช้ได้ (พัฒนา)</th>
+            <th>คล่องแคล่ว</th>
+            <th>รูปแบบการพัฒนาที่แนะนำ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ความเข้าใจพื้นฐาน AI</td>
+            <td><span class="badge badge-red">125 คน</span></td>
+            <td><span class="badge badge-orange">539 คน</span></td>
+            <td><span class="badge badge-green">173 คน</span></td>
+            <td>e-Learning + Workshop เบื้องต้น</td>
+          </tr>
+          <tr>
+            <td>Prompt Engineering</td>
+            <td><span class="badge badge-red">218 คน</span></td>
+            <td><span class="badge badge-orange">477 คน</span></td>
+            <td><span class="badge badge-green">142 คน</span></td>
+            <td>Prompt Library + Workshop เชิงปฏิบัติ</td>
+          </tr>
+          <tr>
+            <td>Fact-checking AI Output</td>
+            <td><span class="badge badge-red">232 คน</span></td>
+            <td><span class="badge badge-orange">472 คน</span></td>
+            <td><span class="badge badge-green">133 คน</span></td>
+            <td>Guidelines + Case Study ตัวอย่างงานจริง</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAGE: RECOMMENDATION ==================== -->
+<div class="page" id="page-recommendation">
+  <div class="section-title"><span class="icon">💡</span> ข้อเสนอแนะเชิงกลยุทธ์สำหรับการจัดหา AI</div>
+
+  <div class="insight-box" style="margin-bottom:20px;font-size:14px">
+    <strong>สรุปภาพรวม:</strong> จากการสำรวจผู้ตอบ 837 คน พบว่าองค์กรมีความพร้อมสูง (91.8% เคยใช้ AI แล้ว) แต่ยังขาด AI ที่ตอบโจทย์งานจริง ทักษะที่เหมาะสม และนโยบายที่ชัดเจน — การลงทุน AI ควรเน้น 3 มิติ: <strong>เครื่องมือ + ทักษะ + กำกับดูแล</strong>
+  </div>
+
+  <div class="section-title" style="font-size:15px;margin-top:8px"><span class="icon">🔴</span> Priority สูง — ดำเนินการทันที</div>
+  <div class="rec-grid">
+    <div class="rec-card priority-high">
+      <span class="tag tag-high">Priority 1</span>
+      <h4>🤖 จัดหา AI สำหรับ Data Analytics & Insight</h4>
+      <p>71% ของพนักงานต้องการ AI ช่วยวิเคราะห์ข้อมูลและสร้าง Insight เป็น Use Case อันดับ 1 ชัดเจน ควรพิจารณาเครื่องมืออย่าง Copilot for Excel, NotebookLM หรือ BI + AI เช่น Power BI Copilot</p>
+    </div>
+    <div class="rec-card priority-high">
+      <span class="tag tag-high">Priority 2</span>
+      <h4>📋 AI สรุปการประชุมและสืบค้นระเบียบ</h4>
+      <p>Use Cases อันดับ 2-3 (62%) ได้แก่ สรุปการประชุมและสืบค้นข้อมูลจากคู่มือ/ระเบียบ ควรพิจารณา Fireflies/Otter.ai สำหรับประชุม และ RAG-based AI Knowledge Base สำหรับระเบียบองค์กร</p>
+    </div>
+    <div class="rec-card priority-high">
+      <span class="tag tag-high">Priority 3</span>
+      <h4>⚙️ Workflow Automation ลด Manual Process</h4>
+      <p>54% ระบุ "งานซ้ำๆ" เป็นปัญหาหนักสุด ควรลงทุน RPA/Automation เช่น Power Automate, n8n ร่วมกับ AI เพื่อลดงานซ้ำได้ทันที</p>
+    </div>
+  </div>
+
+  <div class="section-title" style="font-size:15px;margin-top:8px"><span class="icon">🟡</span> Priority กลาง — วางแผนภายใน 3–6 เดือน</div>
+  <div class="rec-grid">
+    <div class="rec-card priority-med">
+      <span class="tag tag-med">Priority 4</span>
+      <h4>🎓 Workshop & Prompt Engineering Training</h4>
+      <p>72.6% ต้องการ Workshop เชิงปฏิบัติ ขณะที่ 26% ยังต้องการอบรม Prompt Engineering เริ่มต้นจากศูนย์ ควรจัด Training ตามกลุ่มงานจริง ไม่ใช่ One-size-fits-all</p>
+    </div>
+    <div class="rec-card priority-med">
+      <span class="tag tag-med">Priority 5</span>
+      <h4>📚 Prompt Library & Guidelines ประจำหน่วยงาน</h4>
+      <p>66.5% ต้องการ Prompt Library ที่ออกแบบมาเพื่องานของตนเอง ควรให้แต่ละส่วนงานร่วมสร้าง Prompt ที่ใช้งานจริง และมี Guidelines ชัดเจนว่าอะไรทำได้/ไม่ได้</p>
+    </div>
+    <div class="rec-card priority-med">
+      <span class="tag tag-med">Priority 6</span>
+      <h4>🔐 นโยบายความปลอดภัยข้อมูลและจริยธรรม AI</h4>
+      <p>71.1% กังวลด้านความปลอดภัยข้อมูล และ 45.4% กังวลด้านจริยธรรม ต้องมี AI Policy ที่ชัดเจน รวมถึงการ classify ข้อมูลว่าอะไรแชร์กับ AI ได้หรือไม่ได้</p>
+    </div>
+  </div>
+
+  <div class="section-title" style="font-size:15px;margin-top:8px"><span class="icon">🟢</span> Priority เสริม — ระยะยาว</div>
+  <div class="rec-grid">
+    <div class="rec-card priority-low">
+      <span class="tag tag-low">Priority 7</span>
+      <h4>🎨 AI Creative (Image, Presentation)</h4>
+      <p>56.4% ต้องการ AI ช่วยสร้าง Graphic/Slide เครื่องมือเช่น Canva AI, Gamma หรือ Copilot for PowerPoint ตอบโจทย์ได้ดี และมีต้นทุนต่ำ</p>
+    </div>
+    <div class="rec-card priority-low">
+      <span class="tag tag-low">Priority 8</span>
+      <h4>🔄 เพิ่ม License ให้ครบ 100% พร้อม Onboarding</h4>
+      <p>ปัจจุบัน 48.6% ยังไม่ได้รับ License และในกลุ่มที่ได้รับแล้ว 83% ใช้งานไม่เต็มศักยภาพ ควรขยาย License พร้อม Onboarding Program ที่ชัดเจน</p>
+    </div>
+    <div class="rec-card priority-low">
+      <span class="tag tag-low">Priority 9</span>
+      <h4>📊 วัดผล ROI และติดตามการใช้งาน</h4>
+      <p>ตั้ง KPI วัด AI Adoption Rate, Time Saved, Quality Improvement ทบทวนทุก Quarter เพื่อปรับกลยุทธ์ให้ตรงกับ Feedback จริงจากพนักงาน</p>
+    </div>
+  </div>
+
+  <!-- Roadmap Summary -->
+  <div class="chart-card" style="margin-top:20px">
+    <h3>🗺️ Roadmap การจัดหา AI — สรุปตามไทม์ไลน์</h3>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>ช่วงเวลา</th>
+            <th>การดำเนินการหลัก</th>
+            <th>เป้าหมาย</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>0–1 เดือน</strong></td>
+            <td>ประกาศนโยบาย AI / Data Security Guidelines</td>
+            <td>ลดความกังวล 71% ด้านความปลอดภัย</td>
+            <td><span class="badge badge-red">สูง</span></td>
+          </tr>
+          <tr>
+            <td><strong>1–3 เดือน</strong></td>
+            <td>ขยาย License AI Text Generation + เริ่ม Workshop Prompt Engineering</td>
+            <td>เพิ่ม Adoption Rate จาก 29.9% → 60%</td>
+            <td><span class="badge badge-red">สูง</span></td>
+          </tr>
+          <tr>
+            <td><strong>3–6 เดือน</strong></td>
+            <td>Deploy AI Meeting Summary + Knowledge Base Search + Automation Tools</td>
+            <td>ลด Manual Process ที่ 54% ระบุเป็นปัญหา</td>
+            <td><span class="badge badge-orange">กลาง</span></td>
+          </tr>
+          <tr>
+            <td><strong>6–12 เดือน</strong></td>
+            <td>สร้าง Prompt Library ประจำหน่วยงาน + วัดผล ROI</td>
+            <td>ให้ 80%+ ของพนักงานใช้ AI เป็นประจำ</td>
+            <td><span class="badge badge-orange">กลาง</span></td>
+          </tr>
+          <tr>
+            <td><strong>1 ปีขึ้นไป</strong></td>
+            <td>AI Analytics Platform + Custom AI สำหรับงานเฉพาะ</td>
+            <td>ยกระดับ Productivity องค์กร อย่างยั่งยืน</td>
+            <td><span class="badge badge-green">เสริม</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Dashboard จัดทำจากข้อมูลผลสำรวจ 837 คน | วิเคราะห์และออกแบบด้วย AI | ข้อมูล ณ เมษายน 2568
+</footer>
+
+<script>
+// ===== TAB NAVIGATION =====
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      showPage(this.getAttribute('data-page'), this);
+    });
+  });
+});
+
+// ===== CHART DEFAULTS =====
+Chart.defaults.font.family = "'Segoe UI', 'Noto Sans Thai', Arial, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#2c3e50';
+
+const PALETTE = ['#2e86c1','#27ae60','#f39c12','#e74c3c','#8e44ad','#16a085','#d35400','#2c3e50','#c0392b','#1abc9c'];
+const PALETTE_SOFT = ['rgba(46,134,193,0.85)','rgba(39,174,96,0.85)','rgba(243,156,18,0.85)','rgba(231,76,60,0.85)','rgba(142,68,173,0.85)','rgba(22,160,133,0.85)'];
+
+// ===== OVERVIEW: Usage Overall Donut =====
+new Chart(document.getElementById('chartUsageOverall'), {
+  type: 'doughnut',
+  data: {
+    labels: ['ใช้งานเป็นประจำ', 'เคยใช้บ้าง', 'ไม่เคยใช้เลย'],
+    datasets: [{
+      data: [250, 518, 69],
+      backgroundColor: ['#27ae60','#2e86c1','#e74c3c'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.label}: ${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)`
+        }
+      }
+    }
+  }
+});
+
+// ===== OVERVIEW: Expectations Bar =====
+new Chart(document.getElementById('chartExpectations'), {
+  type: 'bar',
+  data: {
+    labels: ['ลดเวลาทำงาน','เพิ่มคุณภาพงาน','เพิ่มความรวดเร็วบริการ','ลดต้นทุน'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [740, 649, 513, 225],
+      backgroundColor: ['#2e86c1','#27ae60','#f39c12','#8e44ad'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: '#eee' }, max: 837,
+        ticks: { callback: v => v }
+      },
+      y: { grid: { display: false } }
+    }
+  }
+});
+
+// ===== OVERVIEW: License Summary =====
+new Chart(document.getElementById('chartLicenseSummary'), {
+  type: 'doughnut',
+  data: {
+    labels: ['ได้รับ License','ไม่ได้รับ License'],
+    datasets: [{
+      data: [430, 407],
+      backgroundColor: ['#2e86c1','#bdc3c7'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.label}: ${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)`
+        }
+      }
+    }
+  }
+});
+
+// ===== DEMOGRAPHICS: Employee Type =====
+new Chart(document.getElementById('chartEmployeeType'), {
+  type: 'doughnut',
+  data: {
+    labels: ['พนักงาน','ฝ่ายจัดการ','สัญญาจ้าง'],
+    datasets: [{
+      data: [764, 71, 2],
+      backgroundColor: ['#2e86c1','#f39c12','#27ae60'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+// ===== DEMOGRAPHICS: Generation =====
+new Chart(document.getElementById('chartGeneration'), {
+  type: 'doughnut',
+  data: {
+    labels: ['55 ปีขึ้นไป','45–54 ปี','25–34 ปี','35–44 ปี','ต่ำกว่า 25 ปี'],
+    datasets: [{
+      data: [251, 212, 198, 147, 29],
+      backgroundColor: ['#e74c3c','#f39c12','#27ae60','#2e86c1','#8e44ad'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+// ===== DEMOGRAPHICS: Function =====
+new Chart(document.getElementById('chartFunction'), {
+  type: 'bar',
+  data: {
+    labels: ['Data Analysis','Customer Service','Management','Technical','IT & Digital','Admin','R&D','HR','Finance','Security'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [257,221,218,209,187,129,107,105,100,66],
+      backgroundColor: PALETTE,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { grid: { color: '#eee' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
+  }
+});
+
+// ===== DEMOGRAPHICS: Departments =====
+new Chart(document.getElementById('chartDepartments'), {
+  type: 'bar',
+  data: {
+    labels: ['ววจ. (วิศวกรรมจราจรทางอากาศ)','บภภ. (บริการการเดินอากาศส่วนภูมิภาค)','บจจ. (บริหารจราจรทางอากาศ)','ทกบ. (ทรัพยากรบุคคล)','กงน. (การเงิน)','มปภ. (มาตรฐานและความปลอดภัย)','ยธอ. (ยุทธศาสตร์องค์กร)','พธก. (พัฒนาธุรกิจ)','สกญ. (สำนักกรรมการผู้อำนวยการใหญ่)','สตน. (สำนักตรวจสอบภายใน)'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [266,145,68,56,53,53,51,43,32,16],
+      backgroundColor: PALETTE,
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { grid: { color: '#eee' } }, y: { grid: { display: false }, ticks: { font: { size: 10 } } } }
+  }
+});
+
+// ===== DEMOGRAPHICS: Usage by Age =====
+new Chart(document.getElementById('chartUsageByAge'), {
+  type: 'bar',
+  data: {
+    labels: ['ต่ำกว่า 25 ปี','25–34 ปี','35–44 ปี','45–54 ปี','55 ปีขึ้นไป'],
+    datasets: [
+      { label: 'ใช้งานเป็นประจำ', data: [10,68,42,75,55], backgroundColor: '#27ae60', borderRadius: 4 },
+      { label: 'เคยใช้บ้าง', data: [17,116,96,121,168], backgroundColor: '#2e86c1', borderRadius: 4 },
+      { label: 'ไม่เคยใช้เลย', data: [2,14,9,16,28], backgroundColor: '#e74c3c', borderRadius: 4 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: '#eee' } } }
+  }
+});
+
+// ===== PAIN POINTS: Stacked Bar =====
+const painLabels = [
+  'งานซ้ำๆ / Manual Process',
+  'การประชุมมากเกินไป',
+  'วิเคราะห์ข้อมูลยาก',
+  'ตอบคำถามซ้ำๆ',
+  'ร่างหนังสือ/อีเมล',
+  'Information Overload',
+  'ขาดข้อมูลตัดสินใจ',
+  'ขาดทักษะ Presentation',
+  'พยากรณ์ไม่แม่นยำ',
+  'ภาษาเป็นอุปสรรค',
+  'ผิดพลาดในงานละเอียด'
+];
+new Chart(document.getElementById('chartPainStackedBar'), {
+  type: 'bar',
+  data: {
+    labels: painLabels,
+    datasets: [
+      { label: 'มาก', data: [452,359,349,349,348,273,254,242,239,234,205], backgroundColor: '#e74c3c', borderRadius: [4,4,0,0] },
+      { label: 'ปานกลาง', data: [278,367,408,343,387,456,426,405,458,410,447], backgroundColor: '#f39c12' },
+      { label: 'น้อย', data: [107,111,80,145,102,108,157,190,140,193,185], backgroundColor: '#bdc3c7' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: { stacked: true, grid: { color: '#eee' }, max: 837 },
+      y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// ===== PAIN POINTS: High Only =====
+new Chart(document.getElementById('chartPainHigh'), {
+  type: 'bar',
+  data: {
+    labels: ['งานซ้ำๆ','การประชุมมาก','วิเคราะห์ข้อมูล','ตอบ Q ซ้ำ','ร่างหนังสือ','Info Overload','ขาดข้อมูล','ขาด Pres. Skills','พยากรณ์ผิด','ภาษา','งานผิดพลาด'],
+    datasets: [{
+      label: 'จำนวนคนระดับ "มาก"',
+      data: [452,359,349,349,348,273,254,242,239,234,205],
+      backgroundColor: function(ctx) {
+        const v = ctx.raw;
+        if (v >= 400) return '#e74c3c';
+        if (v >= 300) return '#f39c12';
+        return '#2e86c1';
+      },
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { x: { grid: { display: false } }, y: { grid: { color: '#eee' } } }
+  }
+});
+
+// ===== AI USAGE: Current Usage =====
+new Chart(document.getElementById('chartCurrentUsage'), {
+  type: 'doughnut',
+  data: {
+    labels: ['ใช้งานเป็นประจำ','เคยใช้บ้าง','ไม่เคยใช้เลย'],
+    datasets: [{
+      data: [250,518,69],
+      backgroundColor: ['#27ae60','#2e86c1','#e74c3c'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, plugins: { legend: { position: 'bottom' },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+// ===== AI USAGE: License Detail =====
+new Chart(document.getElementById('chartLicenseDetail'), {
+  type: 'bar',
+  data: {
+    labels: ['ได้รับ License','ไม่ได้รับ License'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [430, 407],
+      backgroundColor: ['#2e86c1','#bdc3c7'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      subtitle: {
+        display: true,
+        text: 'ความพึงพอใจในกลุ่มที่ได้รับ License (430 คน)',
+        color: '#7f8c8d', font: { size: 11 }, padding: { bottom: 8 }
+      }
+    },
+    scales: { y: { grid: { color: '#eee' }, max: 500 }, x: { grid: { display: false } } }
+  }
+});
+
+// ===== AI USAGE: AI Tools =====
+new Chart(document.getElementById('chartAITools'), {
+  type: 'bar',
+  data: {
+    labels: ['ChatGPT','Gemini','MS Copilot','NotebookLM','Canva AI','Claude','Grammarly','Perplexity','Gamma','Grok','GitHub Copilot','Notion AI'],
+    datasets: [{
+      label: 'จำนวนผู้ใช้',
+      data: [640,562,324,233,208,152,68,55,47,43,30,28],
+      backgroundColor: PALETTE.concat(['#1abc9c','#d35400']),
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { color: '#eee' }, ticks: { callback: v => v } }
+    }
+  }
+});
+
+// ===== AI USAGE: AI Types =====
+new Chart(document.getElementById('chartAITypes'), {
+  type: 'radar',
+  data: {
+    labels: ['Text\nGeneration','Image\nGeneration','Video\nGeneration','Audio &\nVoice','3D &\nDesign','Workflow\nAutomation'],
+    datasets: [{
+      label: '% จำเป็นมาก',
+      data: [66.4, 34.6, 29.5, 31.4, 27.1, 54.1],
+      backgroundColor: 'rgba(46,134,193,0.2)',
+      borderColor: '#2e86c1',
+      pointBackgroundColor: '#2e86c1',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { r: { min: 0, max: 80, ticks: { stepSize: 20 }, grid: { color: '#eee' } } }
+  }
+});
+
+// ===== NEEDS: Use Cases =====
+new Chart(document.getElementById('chartUseCases'), {
+  type: 'bar',
+  data: {
+    labels: ['วิเคราะห์ข้อมูล/Insight','สืบค้นระเบียบ/คู่มือ','สรุปการประชุม','งานอัตโนมัติ/Code','สร้างสรรค์/สไลด์','แปลภาษา','ช่วยคิดโครงการ','เขียน/ร่างเอกสาร'],
+    datasets: [
+      { label: 'จำเป็นมาก', data: [594,521,519,474,472,463,401,392], backgroundColor: '#27ae60', borderRadius: [5,5,0,0] },
+      { label: 'จำเป็นปานกลาง', data: [224,258,257,271,310,309,353,344], backgroundColor: '#f39c12' },
+      { label: 'จำเป็นน้อย', data: [19,58,61,92,55,65,83,101], backgroundColor: '#bdc3c7' }
+    ]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: { stacked: true, grid: { color: '#eee' }, max: 837 },
+      y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// ===== NEEDS: Expectations =====
+new Chart(document.getElementById('chartExpectation2'), {
+  type: 'bar',
+  data: {
+    labels: ['ลดเวลาทำงาน','เพิ่มคุณภาพงาน','เพิ่มความรวดเร็วบริการ','ลดต้นทุน'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [740,649,513,225],
+      backgroundColor: ['#2e86c1','#27ae60','#f39c12','#8e44ad'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    },
+    scales: { y: { grid: { color: '#eee' }, max: 837 }, x: { grid: { display: false } } }
+  }
+});
+
+// ===== NEEDS: Concerns =====
+new Chart(document.getElementById('chartConcerns'), {
+  type: 'bar',
+  data: {
+    labels: ['ความถูกต้อง/ข้อมูลผิด','ความปลอดภัยข้อมูล','จริยธรรม/ลิขสิทธิ์','ความคุ้มค่า/ซับซ้อน','ไม่มีความกังวล'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [635,595,380,234,83],
+      backgroundColor: ['#e74c3c','#c0392b','#f39c12','#f1c40f','#27ae60'],
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true, indexAxis: 'y',
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    },
+    scales: { x: { grid: { color: '#eee' }, max: 700 }, y: { grid: { display: false } } }
+  }
+});
+
+// ===== NEEDS: Support =====
+new Chart(document.getElementById('chartSupport'), {
+  type: 'bar',
+  data: {
+    labels: ['Workshop เชิงปฏิบัติ','Prompt Library','Guidelines/Policy','Tech Support'],
+    datasets: [{
+      label: 'จำนวนคน',
+      data: [608,557,523,520],
+      backgroundColor: ['#2e86c1','#27ae60','#f39c12','#8e44ad'],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.raw} คน (${(ctx.raw/837*100).toFixed(1)}%)` } }
+    },
+    scales: { y: { grid: { color: '#eee' }, max: 700 }, x: { grid: { display: false } } }
+  }
+});
+
+// ===== SKILLS: Skills Assessment =====
+new Chart(document.getElementById('chartSkills'), {
+  type: 'bar',
+  data: {
+    labels: ['ความเข้าใจพื้นฐาน AI','Prompt Engineering','Fact-checking'],
+    datasets: [
+      { label: 'ใช้งานอย่างคล่องแคล่ว', data: [173,142,133], backgroundColor: '#27ae60', borderRadius: [5,5,0,0] },
+      { label: 'พอมีความรู้ ทำได้แต่ไม่แน่ใจ', data: [539,477,472], backgroundColor: '#f39c12' },
+      { label: 'เริ่มต้นจากศูนย์ ต้องการอบรม', data: [125,218,232], backgroundColor: '#e74c3c' }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, grid: { color: '#eee' }, max: 850 }
+    }
+  }
+});
+
+// Animate progress bars on load
+document.querySelectorAll('.bar-fill').forEach(el => {
+  const w = el.style.width;
+  el.style.width = '0';
+  setTimeout(() => { el.style.width = w; }, 300);
+});
+</script>
+
+</body>
+</html>
